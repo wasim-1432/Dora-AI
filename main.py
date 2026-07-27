@@ -72,8 +72,9 @@ Examples:
         )
 
         image = gr.Image(
+            sources=["upload", "webcam"],
             type="filepath",
-            label="📷 Optional Image"
+            label="📷 Upload or Capture Image"
         )
 
     user_box = gr.Textbox(
