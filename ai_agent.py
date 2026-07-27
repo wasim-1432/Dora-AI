@@ -4,14 +4,22 @@ from tools import analyze_image_with_query
 
 load_dotenv()
 
+# =====================================================
+# LLM
+# =====================================================
+
 llm = ChatGroq(
     model_name="llama-3.3-70b-versatile",
     temperature=0.2,
 )
 
-# Words which usually need vision
+# =====================================================
+# Vision Keywords
+# =====================================================
+
 VISION_KEYWORDS = [
 
+    # Camera / Image
     "see",
     "look",
     "image",
@@ -20,10 +28,12 @@ VISION_KEYWORDS = [
     "camera",
     "webcam",
 
+    # Counting
     "count",
     "how many",
     "number of",
 
+    # Objects
     "pen",
     "pens",
     "pencil",
@@ -36,10 +46,17 @@ VISION_KEYWORDS = [
     "keyboard",
     "wallet",
     "bag",
+    "glass",
+    "cup",
+    "chair",
+    "table",
 
+    # Holding
     "hand",
     "holding",
+    "carry",
 
+    # People
     "person",
     "people",
     "face",
@@ -47,10 +64,12 @@ VISION_KEYWORDS = [
     "dress",
     "wearing",
 
+    # Position
     "behind",
     "front",
     "around",
 
+    # Vision Tasks
     "identify",
     "recognize",
     "detect",
@@ -59,55 +78,106 @@ VISION_KEYWORDS = [
     "visible"
 ]
 
+# =====================================================
+# Vision Detector
+# =====================================================
 
 def needs_vision(query: str):
 
     query = query.lower()
 
-    print("Transcript :", query)
+    print("\nTranscript :", query)
 
     for keyword in VISION_KEYWORDS:
 
         if keyword in query:
-            print(f"Vision Keyword Found : {keyword}")
+
+            print(f"📷 Vision Keyword Found : {keyword}")
+
             return True
 
     return False
 
 
+# =====================================================
+# Text LLM Prompt
+# =====================================================
+
 SYSTEM_PROMPT = """
 You are Dora AI Assistant.
 
-Answer briefly.
+Rules:
 
-Do not explain unless the user asks.
+1. Give short and direct answers.
 
-Examples:
+2. Do NOT explain unless the user asks:
+   explain
+   why
+   how
+   details
+   elaborate
 
-Q: Who is the Prime Minister of India?
+3. Answer factual questions in one sentence.
 
-A: Narendra Modi.
+Examples
 
-Q: Capital of India?
+User:
+Who is the Prime Minister of India?
 
-A: New Delhi.
+Assistant:
+Narendra Modi.
 
-Q: Explain Python.
+User:
+Capital of India?
 
-A: (Detailed explanation)
+Assistant:
+New Delhi.
+
+User:
+Explain Python.
+
+Assistant:
+(Provide a detailed explanation.)
+
+User:
+What is AI?
+
+Assistant:
+Artificial Intelligence is the simulation of human intelligence by machines.
 """
 
+# =====================================================
+# Main AI Function
+# =====================================================
 
-def ask_agent(user_query: str):
+def ask_agent(user_query: str, image_path=None):
 
     print("=" * 60)
     print("Question :", user_query)
 
+    # -------------------------------------------------
+    # Vision Question
+    # -------------------------------------------------
+
     if needs_vision(user_query):
 
-        print("📷 Opening Webcam...")
+        if image_path is None:
 
-        return analyze_image_with_query(user_query)
+            return (
+                "Please capture or upload an image "
+                "for this question."
+            )
+
+        print("📷 Using Browser Image")
+
+        return analyze_image_with_query(
+            user_query,
+            image_path
+        )
+
+    # -------------------------------------------------
+    # Text Question
+    # -------------------------------------------------
 
     print("💬 Text Question")
 
@@ -124,13 +194,21 @@ def ask_agent(user_query: str):
     return response.content.strip()
 
 
+# =====================================================
+# Testing
+# =====================================================
+
 if __name__ == "__main__":
 
     while True:
 
-        q = input("You : ")
+        query = input("\nYou : ")
 
-        if q.lower() == "exit":
+        if query.lower() == "exit":
             break
 
-        print(ask_agent(q))
+        print(
+            ask_agent(
+                query
+            )
+        )
