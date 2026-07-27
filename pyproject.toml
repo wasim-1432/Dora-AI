@@ -1,20 +1,23 @@
 [project]
 name = "dora-ai-assistant"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "Dora AI - Voice and Vision Assistant powered by Groq"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
+
 dependencies = [
-    "elevenlabs>=2.59.0",
-    "gradio>=6.20.0",
-    "groq>=1.6.0",
+
+    # AI
+    "groq>=0.31.0",
+    "langchain-groq>=0.3.0",
+
+    # UI
+    "gradio>=5.38.0",
+
+    # Voice
     "gtts>=2.5.4",
-    "langchain-google-genai>=4.3.1",
-    "langgraph>=1.2.9",
-    "opencv-python>=5.0.0.93",
-    "pyaudio>=0.2.14",
-    "pydub>=0.25.1",
-    "pygame>=2.6.1",
-    "python-dotenv>=1.2.2",
-    "speechrecognition>=3.17.0",
+    "elevenlabs>=2.59.0",
+
+    # Environment
+    "python-dotenv>=1.1.1"
 ]
