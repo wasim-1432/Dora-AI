@@ -1,4 +1,4 @@
-
+```python
 import os
 import tempfile
 import gradio as gr
@@ -9,58 +9,80 @@ from text_to_speech import text_to_speech_with_elevenlabs
 
 
 # =====================================================
-# Main Chat Function
+# Main Processing Function
 # =====================================================
 
 def process_query(audio, webcam_image):
+    """
+    Process microphone audio and optionally webcam image.
+    """
 
+    # No audio received
     if audio is None:
-        return "", "🎤 Listening... please speak.", None
+        return "", "🎤 Please speak something.", None
 
-    # Speech → Text
-    user_text = transcribe_with_groq(audio)
+    try:
+        # -------------------------------------------------
+        # Speech → Text
+        # -------------------------------------------------
+        user_text = transcribe_with_groq(audio)
 
-    if not user_text:
-        return "", "❌ No speech detected.", None
+        if not user_text:
+            return "", "❌ No speech detected.", None
 
-    print(f"\\nYOU: {user_text}")
+        print(f"\\nYOU: {user_text}")
 
-    # Decide whether image is needed
-    use_vision = needs_vision(user_text)
+        # -------------------------------------------------
+        # Decide whether vision is needed
+        # -------------------------------------------------
+        use_vision = needs_vision(user_text)
 
-    if use_vision:
-        if webcam_image is None:
-            response = "📷 Please allow camera access and keep the object visible."
+        if use_vision:
+            print("📷 Vision query detected")
+
+            if webcam_image is None:
+                response = (
+                    "📷 Please allow camera access and keep the object visible."
+                )
+            else:
+                response = ask_agent(
+                    user_query=user_text,
+                    image_path=webcam_image
+                )
+
         else:
+            print("💬 Normal text query detected")
+
             response = ask_agent(
                 user_query=user_text,
-                image_path=webcam_image
+                image_path=None
             )
-    else:
-        response = ask_agent(
-            user_query=user_text,
-            image_path=None
-        )
 
-    print(f"\\nDORA: {response}")
+        print(f"\\nDORA: {response}")
 
-    # Temporary audio output
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-        audio_path = tmp.name
+        # -------------------------------------------------
+        # Text → Speech
+        # -------------------------------------------------
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=".mp3"
+        ) as tmp:
+            audio_path = tmp.name
 
-    text_to_speech_with_elevenlabs(response, audio_path)
+        text_to_speech_with_elevenlabs(response, audio_path)
 
-    return user_text, response, audio_path
+        return user_text, response, audio_path
+
+    except Exception as e:
+        print(f"❌ ERROR: {e}")
+        return "", f"❌ Error: {str(e)}", None
 
 
 # =====================================================
-# Gradio UI
+# Gradio Interface
 # =====================================================
 
-with gr.Blocks(
-    title="🤖 Dora AI Assistant",
-    theme=gr.themes.Soft()
-) as demo:
+with gr.Blocks(title="🤖 Dora AI Assistant") as demo:
 
     gr.Markdown(
         """
@@ -73,51 +95,60 @@ with gr.Blocks(
 - **How many pens are in my hand?** → camera image analysed automatically
 - **What colour is my shirt?** → camera image analysed automatically
 
-⚠️ Allow **Microphone** and **Camera** permissions when the browser asks.
+⚠️ **Allow Microphone and Camera permissions when the browser asks.**
         """
     )
 
     with gr.Row():
 
-        # Microphone
+        # Microphone input
         mic = gr.Audio(
             sources=["microphone"],
             type="filepath",
-            label="🎤 Dora is Listening",
+            label="🎤 Dora is Listening"
         )
 
-        # Hidden webcam component
+        # Webcam input
         webcam = gr.Image(
             sources=["webcam"],
             type="filepath",
-            label="📷 Auto Camera",
-            visible=True
+            label="📷 Camera (used automatically for vision questions)"
         )
 
+    # User text
     user_box = gr.Textbox(
         label="🧑 You",
         interactive=False
     )
 
+    # AI response
     ai_box = gr.Textbox(
         label="🤖 Dora",
         lines=5,
         interactive=False
     )
 
+    # Voice output
     voice_output = gr.Audio(
         label="🔊 Dora Voice",
         autoplay=True
     )
 
-    # Auto-process when recording stops
+    # -------------------------------------------------
+    # Automatically process when recording stops
+    # -------------------------------------------------
     mic.stop_recording(
         fn=process_query,
         inputs=[mic, webcam],
         outputs=[user_box, ai_box, voice_output]
     )
 
-    gr.Button("🗑️ Clear").click(
+    # -------------------------------------------------
+    # Clear button
+    # -------------------------------------------------
+    clear_btn = gr.Button("🗑️ Clear", variant="secondary")
+
+    clear_btn.click(
         lambda: (None, None, "", "", None),
         outputs=[mic, webcam, user_box, ai_box, voice_output]
     )
@@ -134,6 +165,10 @@ if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=port,
-        share=False
+        share=False,
+        show_error=True,
+        quiet=False
     )
+```
+
 
