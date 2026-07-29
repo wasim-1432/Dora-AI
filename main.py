@@ -4,125 +4,132 @@ import tempfile
 import gradio as gr
 
 from speech_to_text import transcribe_with_groq
-from ai_agent import ask_agent
+from ai_agent import ask_agent, needs_vision
 from text_to_speech import text_to_speech_with_elevenlabs
 
 
-def chat(audio, image):
+# =====================================================
+# Main Chat Function
+# =====================================================
 
-    # No audio provided
+def process_query(audio, webcam_image):
+
     if audio is None:
-        return "", "Please record your voice.", None
+        return "", "🎤 Listening... please speak.", None
 
-    try:
-        # Speech to text
-        user_text = transcribe_with_groq(audio)
+    # Speech → Text
+    user_text = transcribe_with_groq(audio)
 
-        print("\\nYOU:", user_text)
+    if not user_text:
+        return "", "❌ No speech detected.", None
 
-        if not user_text:
-            return "", "No speech detected.", None
+    print(f"\\nYOU: {user_text}")
 
-        # Ask AI agent
+    # Decide whether image is needed
+    use_vision = needs_vision(user_text)
+
+    if use_vision:
+        if webcam_image is None:
+            response = "📷 Please allow camera access and keep the object visible."
+        else:
+            response = ask_agent(
+                user_query=user_text,
+                image_path=webcam_image
+            )
+    else:
         response = ask_agent(
             user_query=user_text,
-            image_path=image
+            image_path=None
         )
 
-        print("\\nDORA:", response)
+    print(f"\\nDORA: {response}")
 
-        # Temporary MP3 file (important for Render)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-            output_audio = tmp.name
+    # Temporary audio output
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+        audio_path = tmp.name
 
-        # Text to speech
-        text_to_speech_with_elevenlabs(
-            response,
-            output_audio
-        )
+    text_to_speech_with_elevenlabs(response, audio_path)
 
-        return user_text, response, output_audio
+    return user_text, response, audio_path
 
-    except Exception as e:
-        print("ERROR:", e)
-        return "", f"Error: {str(e)}", None
 
+# =====================================================
+# Gradio UI
+# =====================================================
 
 with gr.Blocks(
     title="🤖 Dora AI Assistant",
-    theme=gr.themes.Soft(),
+    theme=gr.themes.Soft()
 ) as demo:
 
     gr.Markdown(
         """
 # 🤖 Dora AI Assistant
 
-### 🎤 Speak your question
+### 🎙️ Just speak naturally
 
-### 📷 Upload an image only if your question is about objects or surroundings
+- **Who is the current Prime Minister of India?** → direct answer
+- **What is AI?** → direct answer
+- **How many pens are in my hand?** → camera image analysed automatically
+- **What colour is my shirt?** → camera image analysed automatically
 
-**Examples:**
-
-- Who is the Prime Minister of India?
-- What is AI?
-- How many pens are in my hand?
-- What colour is my shirt?
+⚠️ Allow **Microphone** and **Camera** permissions when the browser asks.
         """
     )
 
     with gr.Row():
 
-        audio = gr.Audio(
+        # Microphone
+        mic = gr.Audio(
             sources=["microphone"],
             type="filepath",
-            label="🎤 Microphone"
+            label="🎤 Dora is Listening",
+            waveform_options={"show_controls": False}
         )
 
-        image = gr.Image(
-            sources=["upload", "webcam"],
+        # Hidden webcam component
+        webcam = gr.Image(
+            sources=["webcam"],
             type="filepath",
-            label="📷 Upload or Capture Image"
+            label="📷 Auto Camera",
+            visible=True
         )
 
     user_box = gr.Textbox(
-        label="You",
+        label="🧑 You",
         interactive=False
     )
 
     ai_box = gr.Textbox(
-        label="Dora",
-        lines=6,
+        label="🤖 Dora",
+        lines=5,
         interactive=False
     )
 
-    output_audio = gr.Audio(
+    voice_output = gr.Audio(
         label="🔊 Dora Voice",
         autoplay=True
     )
 
-    with gr.Row():
-
-        submit = gr.Button(
-            "🚀 Ask Dora",
-            variant="primary"
-        )
-
-        clear = gr.Button("🗑 Clear")
-
-    submit.click(
-        fn=chat,
-        inputs=[audio, image],
-        outputs=[user_box, ai_box, output_audio]
+    # Auto-process when recording stops
+    mic.stop_recording(
+        fn=process_query,
+        inputs=[mic, webcam],
+        outputs=[user_box, ai_box, voice_output]
     )
 
-    clear.click(
+    gr.Button("🗑️ Clear").click(
         lambda: (None, None, "", "", None),
-        outputs=[audio, image, user_box, ai_box, output_audio]
+        outputs=[mic, webcam, user_box, ai_box, voice_output]
     )
 
 
-# IMPORTANT FOR RENDER
+# =====================================================
+# Render Deployment
+# =====================================================
+
 if __name__ == "__main__":
+
     port = int(os.environ.get("PORT", 7860))
 
     demo.launch(
@@ -130,3 +137,4 @@ if __name__ == "__main__":
         server_port=port,
         share=False
     )
+
