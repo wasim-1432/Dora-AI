@@ -1,4 +1,4 @@
-```python
+
 import cv2
 import os
 
@@ -47,7 +47,7 @@ def analyze_image_with_query(query: str, image_path: str) -> str:
     except Exception as e:
         print(f"Vision Error: {e}")
         return "❌ Vision processing failed."
-```
+
 
 
 
