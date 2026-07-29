@@ -1,6 +1,8 @@
-gradio>=5.38.0
-groq>=0.31.0
-langchain-groq>=0.3.0
-python-dotenv>=1.1.1
-gtts>=2.5.4
-elevenlabs>=2.59.0
+gradio
+groq
+python-dotenv
+gtts
+pydub
+speechrecognition
+opencv-python
+pillow
