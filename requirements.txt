@@ -6,3 +6,4 @@ pydub
 speechrecognition
 opencv-python
 pillow
+langchain-groq
