@@ -24,123 +24,203 @@ def image_to_base64(image_path: str) -> str:
         return base64.b64encode(img.read()).decode("utf-8")
 
 
+
 # ==========================================
 # Vision
 # ==========================================
 
 def analyze_image_with_query(query: str, image_path: str) -> str:
 
+    # No image available
     if image_path is None:
-        return "Please upload or capture an image."
+        return "📷 Please keep the object visible to the camera."
 
-    img_b64 = image_to_base64(image_path)
+    try:
+        # Convert image to Base64
+        img_b64 = image_to_base64(image_path)
 
-    client = Groq(
-        api_key=os.getenv("GROQ_API_KEY")
-    )
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-    print("\n📷 Sending image to Groq Vision...")
+        print("\\n📷 Sending image to Groq Vision...")
 
-    messages = [
-        {
-            "role": "system",
-            "content": """
-You are Dora AI Vision Assistant.
-
-Rules:
-
-1. Reply ONLY to the user's question.
-
-2. Never explain your reasoning.
-
-3. Never generate <think>.
-
-4. Never describe the whole image unless asked.
-
-5. Maximum answer length: 12 words.
-
-6. Give direct answers.
-
-7. Count objects accurately.
-
-8. If unsure, simply say:
-"I am not sure."
-
-Examples
-
-User:
-How many pens are in my hand?
-
-Assistant:
-2 pens.
-
-User:
-How many people are there?
-
-Assistant:
-3 people.
-
-User:
-What am I holding?
-
-Assistant:
-2 pens.
-
-User:
-What colour is my shirt?
-
-Assistant:
-Blue.
-
-User:
-Is there anyone behind me?
-
-Assistant:
-Yes, one person.
-
-User:
-Describe the image.
-
-Assistant:
-(Only then briefly describe.)
-"""
-        },
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": query
-                },
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{img_b64}"
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are Dora AI Vision Assistant. "
+                    "Reply only to the user's question. "
+                    "Keep answers extremely short (maximum 12 words). "
+                    "Do not explain reasoning. "
+                    "Count objects carefully. "
+                    "If uncertain, reply: 'I am not sure.'"
+                )
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": query
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{img_b64}"
+                        }
                     }
-                }
-            ]
-        }
-    ]
+                ]
+            }
+        ]
 
-    response = client.chat.completions.create(
-        model="qwen/qwen3.5-vl-32b-instruct",
-        messages=messages,
-        temperature=0
-    )
+        response = client.chat.completions.create(
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            messages=messages,
+            temperature=0,
+            max_completion_tokens=20
+        )
 
-    answer = response.choices[0].message.content
+        # Safe extraction
+        answer = response.choices[0].message.content or "I am not sure."
 
-    answer = re.sub(
-        r"<think>.*?</think>",
-        "",
-        answer,
-        flags=re.DOTALL
-    ).strip()
+        # Remove any accidental <think> blocks
+        answer = re.sub(
+            r"<think>.*?</think>",
+            "",
+            answer,
+            flags=re.DOTALL
+        ).strip()
 
-    print("\nVision Response:")
-    print(answer)
+        if not answer:
+            answer = "I am not sure."
 
-    return answer
+        print("\\nVision Response:")
+        print(answer)
+
+        return answer
+
+    except Exception as e:
+        print(f"❌ Vision Error: {e}")
+        return f"❌ Vision error: {str(e)}"
+
+
+
+# ==========================================
+# Vision
+# ==========================================
+
+# def analyze_image_with_query(query: str, image_path: str) -> str:
+
+#     if image_path is None:
+#         return "Please upload or capture an image."
+
+#     img_b64 = image_to_base64(image_path)
+
+#     client = Groq(
+#         api_key=os.getenv("GROQ_API_KEY")
+#     )
+
+#     print("\n📷 Sending image to Groq Vision...")
+
+#     messages = [
+#         {
+#             "role": "system",
+#             "content": """
+# You are Dora AI Vision Assistant.
+
+# Rules:
+
+# 1. Reply ONLY to the user's question.
+
+# 2. Never explain your reasoning.
+
+# 3. Never generate <think>.
+
+# 4. Never describe the whole image unless asked.
+
+# 5. Maximum answer length: 12 words.
+
+# 6. Give direct answers.
+
+# 7. Count objects accurately.
+
+# 8. If unsure, simply say:
+# "I am not sure."
+
+# Examples
+
+# User:
+# How many pens are in my hand?
+
+# Assistant:
+# 2 pens.
+
+# User:
+# How many people are there?
+
+# Assistant:
+# 3 people.
+
+# User:
+# What am I holding?
+
+# Assistant:
+# 2 pens.
+
+# User:
+# What colour is my shirt?
+
+# Assistant:
+# Blue.
+
+# User:
+# Is there anyone behind me?
+
+# Assistant:
+# Yes, one person.
+
+# User:
+# Describe the image.
+
+# Assistant:
+# (Only then briefly describe.)
+# """
+#         },
+#         {
+#             "role": "user",
+#             "content": [
+#                 {
+#                     "type": "text",
+#                     "text": query
+#                 },
+#                 {
+#                     "type": "image_url",
+#                     "image_url": {
+#                         "url": f"data:image/jpeg;base64,{img_b64}"
+#                     }
+#                 }
+#             ]
+#         }
+#     ]
+
+#     response = client.chat.completions.create(
+#         model="meta-llama/llama-4-scout-17b-16e-instruct",
+#         messages=messages,
+#         temperature=0
+#     )
+
+#     answer = response.choices[0].message.content
+
+#     answer = re.sub(
+#         r"<think>.*?</think>",
+#         "",
+#         answer,
+#         flags=re.DOTALL
+#     ).strip()
+
+#     print("\nVision Response:")
+#     print(answer)
+
+#     return answer
 
 
 # ==========================================
