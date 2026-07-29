@@ -73,7 +73,7 @@ def analyze_image_with_query(query: str, image_path: str) -> str:
         ]
 
         response = client.chat.completions.create(
-            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            model="llama-4-scout-17b-16e-instruct",
             messages=messages,
             temperature=0,
             max_completion_tokens=20
