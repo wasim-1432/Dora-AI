@@ -150,48 +150,76 @@ Artificial Intelligence is the simulation of human intelligence by machines.
 # Main AI Function
 # =====================================================
 
-def ask_agent(user_query: str, image_path=None):
 
-    print("=" * 60)
-    print("Question :", user_query)
+# =====================================================
+# Main Ask Agent Function
+# =====================================================
 
-    # -------------------------------------------------
-    # Vision Question
-    # -------------------------------------------------
+def ask_agent(user_query: str, image_path: str = None):
 
-    if needs_vision(user_query):
+    # Vision query
+    if image_path and needs_vision(user_query):
+        return analyze_image_with_query(user_query, image_path)
 
-        if image_path is None:
+    # Normal text query
+    prompt = f"""
+You are Dora AI Assistant.
 
-            return (
-                "Please capture or upload an image "
-                "for this question."
-            )
+Reply naturally, clearly, and briefly.
+Do not use markdown or bullet points unless necessary.
 
-        print("📷 Using Browser Image")
+User: {user_query}
+Assistant:
+"""
 
-        return analyze_image_with_query(
-            user_query,
-            image_path
-        )
-
-    # -------------------------------------------------
-    # Text Question
-    # -------------------------------------------------
-
-    print("💬 Text Question")
-
-    messages = [
-
-        ("system", SYSTEM_PROMPT),
-
-        ("human", user_query)
-
-    ]
-
-    response = llm.invoke(messages)
+    response = llm.invoke(prompt)
 
     return response.content.strip()
+
+
+
+# def ask_agent(user_query: str, image_path=None):
+
+#     print("=" * 60)
+#     print("Question :", user_query)
+
+#     # -------------------------------------------------
+#     # Vision Question
+#     # -------------------------------------------------
+
+#     if needs_vision(user_query):
+
+#         if image_path is None:
+
+#             return (
+#                 "Please capture or upload an image "
+#                 "for this question."
+#             )
+
+#         print("📷 Using Browser Image")
+
+#         return analyze_image_with_query(
+#             user_query,
+#             image_path
+#         )
+
+#     # -------------------------------------------------
+#     # Text Question
+#     # -------------------------------------------------
+
+#     print("💬 Text Question")
+
+#     messages = [
+
+#         ("system", SYSTEM_PROMPT),
+
+#         ("human", user_query)
+
+#     ]
+
+#     response = llm.invoke(messages)
+
+#     return response.content.strip()
 
 
 # =====================================================
