@@ -1,9 +1,12 @@
 gradio
 groq
+langchain
+langchain-core
+langchain-groq
 python-dotenv
 gtts
 pydub
 speechrecognition
 opencv-python
 pillow
-langchain-groq
+requests
