@@ -10,3 +10,4 @@ speechrecognition
 opencv-python
 pillow
 requests
+elevenlabs
