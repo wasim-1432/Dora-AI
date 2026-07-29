@@ -84,7 +84,6 @@ with gr.Blocks(
             sources=["microphone"],
             type="filepath",
             label="🎤 Dora is Listening",
-            waveform_options={"show_controls": False}
         )
 
         # Hidden webcam component
