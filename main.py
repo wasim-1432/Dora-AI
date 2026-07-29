@@ -1,4 +1,3 @@
-```python
 import os
 import tempfile
 import gradio as gr
@@ -169,6 +168,6 @@ if __name__ == "__main__":
         show_error=True,
         quiet=False
     )
-```
+
 
 
