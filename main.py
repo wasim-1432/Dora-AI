@@ -1,3 +1,4 @@
+
 import os
 import tempfile
 import gradio as gr
@@ -9,36 +10,42 @@ from text_to_speech import text_to_speech_with_elevenlabs
 
 def chat(audio, image):
 
+    # No audio provided
     if audio is None:
         return "", "Please record your voice.", None
 
-    # audio is a filepath from browser
-    user_text = transcribe_with_groq(audio)
+    try:
+        # Speech to text
+        user_text = transcribe_with_groq(audio)
 
-    print("\nYOU :", user_text)
+        print("\\nYOU:", user_text)
 
-    if not user_text:
-        return "", "No speech detected.", None
+        if not user_text:
+            return "", "No speech detected.", None
 
-    response = ask_agent(
-        user_query=user_text,
-        image_path=image
-    )
+        # Ask AI agent
+        response = ask_agent(
+            user_query=user_text,
+            image_path=image
+        )
 
-    print("\nDORA :", response)
+        print("\\nDORA:", response)
 
-    output_audio = "final.mp3"
+        # Temporary MP3 file (important for Render)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+            output_audio = tmp.name
 
-    text_to_speech_with_elevenlabs(
-        response,
-        output_audio
-    )
+        # Text to speech
+        text_to_speech_with_elevenlabs(
+            response,
+            output_audio
+        )
 
-    return (
-        user_text,
-        response,
-        output_audio
-    )
+        return user_text, response, output_audio
+
+    except Exception as e:
+        print("ERROR:", e)
+        return "", f"Error: {str(e)}", None
 
 
 with gr.Blocks(
@@ -50,17 +57,17 @@ with gr.Blocks(
         """
 # 🤖 Dora AI Assistant
 
-### 🎤 Speak your question.
+### 🎤 Speak your question
 
-### 📷 Upload an image only if your question is about objects or surroundings.
+### 📷 Upload an image only if your question is about objects or surroundings
 
-Examples:
+**Examples:**
 
 - Who is the Prime Minister of India?
 - What is AI?
 - How many pens are in my hand?
 - What colour is my shirt?
-"""
+        """
     )
 
     with gr.Row():
@@ -104,32 +111,22 @@ Examples:
 
     submit.click(
         fn=chat,
-        inputs=[
-            audio,
-            image
-        ],
-        outputs=[
-            user_box,
-            ai_box,
-            output_audio
-        ]
+        inputs=[audio, image],
+        outputs=[user_box, ai_box, output_audio]
     )
 
     clear.click(
-        lambda: (
-            None,
-            None,
-            "",
-            "",
-            None
-        ),
-        outputs=[
-            audio,
-            image,
-            user_box,
-            ai_box,
-            output_audio
-        ]
+        lambda: (None, None, "", "", None),
+        outputs=[audio, image, user_box, ai_box, output_audio]
     )
 
-demo.launch()
+
+# IMPORTANT FOR RENDER
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 7860))
+
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port,
+        share=False
+    )
